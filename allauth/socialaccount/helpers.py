@@ -1,5 +1,6 @@
+import json
 import logging
-
+import importlib
 from urllib.parse import parse_qsl, quote, urlencode
 
 from django.apps import apps
@@ -151,14 +152,19 @@ def complete_social_login(request, sociallogin):
     sns_id = sociallogin.account.uid
     social_type = sociallogin.account.provider  # settings id
     sns_type = _sns_type.get(social_type)
-    social_obj = social_model.objects.select_related('user').filter(sns_id=sns_id, sns_type=sns_type).first()
+    social_obj = social_model.objects.select_related('user').prefetch_related('user__channels').filter(
+        sns_id=sns_id, sns_type=sns_type
+    ).first()
     if social_obj:
         backends = _get_backends(return_tuples=True)
         _, backend = backends[0]
         user = social_obj.user
         user.backend = backend
-        django_login(request, user)
-        return redirect('/')
+        fondee_auth = importlib.import_module("member.auth")
+        fondee_auth.login_v2(request, user)
+        response = redirect('/')
+        response.set_cookie('profiles', json.dumps(user.get_profiles()))
+        return response
 
     user = sociallogin.user
     region = user.region if user.region is not None else sociallogin.account.extra_data.get('region', None)
