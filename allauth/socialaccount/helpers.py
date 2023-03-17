@@ -98,7 +98,7 @@ def render_authentication_error(
         }
     }
     context.update(extra_context)
-    logger.error(context)
+    logger.info(context)
     return redirect('/login/?error=social')
 
 
