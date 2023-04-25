@@ -147,34 +147,8 @@ def _add_social_account(request, sociallogin):
 
 
 def complete_social_login(request, sociallogin):
-    social_model = apps.get_model(settings.SOCIAL_MODEL, require_ready=False)
-    _sns_type = settings.SNS_TYPES
-    sns_id = sociallogin.account.uid
-    social_type = sociallogin.account.provider  # settings id
-    sns_type = _sns_type.get(social_type)
-    social_obj = social_model.objects.select_related('user').prefetch_related('user__channels').filter(
-        sns_id=sns_id, sns_type=sns_type
-    ).first()
-    if social_obj:
-        backends = _get_backends(return_tuples=True)
-        _, backend = backends[0]
-        user = social_obj.user
-        user.backend = backend
-        fondee_auth = importlib.import_module("member.auth")
-        fondee_auth.login_v2(request, user)
-        response = redirect('/')
-        response.set_cookie('profiles', json.dumps(user.get_profiles()))
-        return response
-
-    user = sociallogin.user
-    region = user.region if user.region is not None else sociallogin.account.extra_data.get('region', None)
-    params = {
-        "email": user.email,
-        "sns_type": sns_type,
-        "sns_id": sns_id,
-        "region": region,
-    }
-    return redirect(f'/login/sns_register?{urlencode(params, quote_via=quote)}')
+    fondee_auth = importlib.import_module("member.auth")
+    return fondee_auth.complete_social_login(request, sociallogin)
 
 
 def _social_login_redirect(request, sociallogin):
