@@ -89,7 +89,10 @@ def render_authentication_error(
     except ImmediateHttpResponse as e:
         return e.response
     if error == AuthError.CANCELLED:
-        return redirect('/login/?error=social_cancel')
+        if request.user.is_authenticated:
+            return redirect(reverse('member:setting') + '?error=social_cancel')
+        else:
+            return redirect('/login/?error=social_cancel')
     context = {
         "auth_error": {
             "provider": provider_id,
@@ -98,8 +101,11 @@ def render_authentication_error(
         }
     }
     context.update(extra_context)
-    logger.info(context)
-    return redirect('/login/?error=social')
+    logger.warning(context)
+    if request.user.is_authenticated:
+        return redirect(reverse('member:setting') + '?error=social')
+    else:
+        return redirect('/login/?error=social')
 
 
 def _add_social_account(request, sociallogin):
